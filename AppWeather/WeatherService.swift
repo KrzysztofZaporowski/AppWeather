@@ -119,13 +119,11 @@ class WeatherService: ObservableObject {
                 
 //                let sortedForecasts = forecasts.sorted(by: { $0.dt < $1.dt })
 //                let icons = sortedForecasts.map { $0.weather.first?.icon ?? "01d" }
-                
-                let sortedForecasts = forecasts.sorted(by: { $0.dt < $1.dt })
-                let icons = sortedForecasts.map { $0.weather.first?.icon ?? "01d" }
-
-                let icon = icons
-                    .reduce(into: [:]) { $0[$1, default: 0] += 1 }
-                    .max(by: { $0.value < $1.value })?.key ?? "01d"
+//                let icon = icons
+//                    .reduce(into: [:]) { $0[$1, default: 0] += 1 }
+//                    .max(by: { $0.value < $1.value })?.key ?? "01d"
+                let middleIndex = forecasts.count / 2
+                let icon = forecasts[middleIndex].weather.first?.icon ?? "01d"
 
                 return DailyForecast(
                     date: date,
