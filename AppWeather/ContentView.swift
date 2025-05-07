@@ -10,36 +10,52 @@ import SwiftUI
 struct ContentView: View {
     @StateObject var weatherService = WeatherService()
     @AppStorage("savedCity") private var city: String = ""
+    @State private var cityInput: String = ""
     @AppStorage("isDarkMode") private var isDarkMode: Bool = false
     @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
         ZStack {
-            VStack(alignment: .leading, spacing: 20) {
-                TextField("City", text: $city, onCommit: {weatherService.fetchWeather(for: city)})
+            LinearGradient(colors: isDarkMode ? [.blue, .cyan] : [.black, .gray], startPoint: .topTrailing, endPoint: .bottomTrailing)
+                .ignoresSafeArea(.all)
+            VStack (alignment: .center, spacing: 20){
+                Text("Pogoda")
+                    .font(.title)
+                    .bold()
+                Spacer()
+                TextField("Wprowadź nazwę miasta", text: $cityInput, onCommit: {
+                    city = cityInput
+                    weatherService.fetchWeather(for: city)})
                     .padding()
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.gray, lineWidth: 1)
-                    )
+                    .foregroundColor(Color.black)
+                    .background(Color.white.opacity(0.65))
+                    .cornerRadius(8)
+                    .padding(.horizontal)
+                if let error = weatherService.errorMessage {
+                    Text("Błąd: \(error)")
+                }
                 //MARK: Current weather
-                if let weather = weatherService.weatherResponse {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(weather.name)
-                        Text("Today")
-                        if let icon = weather.weather.first?.icon {
+                if let currentWeather = weatherService.weatherResponse {
+                    VStack(alignment: .center, spacing: 10){
+                        Text(currentWeather.name)
+                            .font(.title2)
+                            .bold()
+                        Text("\(Int(currentWeather.main.temp))°C")
+                            .font(.largeTitle)
+                            .bold()
+                        if let icon = currentWeather.weather.first?.icon {
                             Image(systemName: iconName(for: icon))
                                 .resizable()
                                 .scaledToFit()
-                                .frame(width: 40, height: 40)
+                                .frame(width: 80, height: 80)
                                 .symbolRenderingMode(.multicolor)
                         }
-                        Text(weather.weather.first?.description.capitalized ?? "")
-                        Text("\(Int(weather.main.temp))°C")
+                        Text(currentWeather.weather.first?.description ?? "Brak opisu pogody")
+                            .textCase(.uppercase)
                     }
                 }
+                //MARK: Hourly weather
                 let offset = weatherService.forecastResponse?.city.timezone ?? 0
-                //MARK: Hourly forecast
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
                         ForEach(weatherService.nextFiveHours, id: \.dt) { forecast in
@@ -49,21 +65,25 @@ struct ContentView: View {
                                     Image(systemName: iconName(for: icon))
                                         .resizable()
                                         .scaledToFit()
-                                        .frame(width: 15, height: 15)
+                                        .frame(width: 30, height: 30)
                                         .symbolRenderingMode(.multicolor)
                                 }
                                 Text("\(Int(forecast.main.temp))°C")
                             }
+                            .frame(width: 60, height: 120)
+                            .padding(.horizontal)
+                            .background(Color.white.opacity(0.2))
+                            .cornerRadius(8)
                         }
                     }
+                    .padding(.horizontal)
                 }
-                // MARK: Daily forecast (next 5 days, excluding today)
+                //MARK: Weather for next 5 days
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 16) {
-                        ForEach(weatherService.dailyForecasts.dropFirst().prefix(5)) { day in
-                            VStack(spacing: 4) {
+                    HStack(spacing: 10) {
+                        ForEach(weatherService.dailyForecasts.dropFirst().prefix(5), id: \.date) { day in
+                            VStack {
                                 Text(shortPolishDayName(from: day.date))
-                                    .font(.headline)
                                 Image(systemName: iconName(for: day.icon))
                                     .resizable()
                                     .scaledToFit()
@@ -73,19 +93,35 @@ struct ContentView: View {
                                 Text("↓ \(Int(day.minTemp))°C")
                                     .foregroundColor(.secondary)
                             }
-                            .padding(8)
+                            .frame(width: 60, height: 120)
+                            .padding(.horizontal)
                             .background(Color.white.opacity(0.2))
                             .cornerRadius(8)
                         }
+                        
                     }
+                    .padding(.horizontal)
                 }
+                Toggle(isOn: $isDarkMode) {
+                    Text("Tryb ciemny")
+                }
+                .toggleStyle(SwitchToggleStyle(tint: .gray))
+                .padding(.horizontal)
+                .padding(.bottom)
+                Spacer()
             }
             .padding()
-            .onAppear{
-                weatherService.fetchWeather(for: city)
+            .foregroundColor(.white)
+            .onAppear {
+                cityInput = city
+                if !city.isEmpty {
+                    weatherService.fetchWeather(for: city)
+                }
+                if UserDefaults.standard.object(forKey: "isDarkMode") == nil {
+                    isDarkMode = (colorScheme == .dark)
+                }
             }
         }
-        .background(.blue)
     }
     
     func iconName(for iconCode: String) -> String {
