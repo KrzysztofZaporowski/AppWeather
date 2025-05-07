@@ -81,7 +81,7 @@ struct ContentView: View {
                 //MARK: Weather for next 5 days
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
-                        ForEach(weatherService.dailyForecasts.dropFirst().prefix(5), id: \.date) { day in
+                        ForEach(weatherService.dailyForecasts.dropFirst().prefix(4), id: \.date) { day in
                             VStack {
                                 Text(shortPolishDayName(from: day.date))
                                 Image(systemName: iconName(for: day.icon))

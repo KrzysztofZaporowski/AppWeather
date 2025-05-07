@@ -116,7 +116,12 @@ class WeatherService: ObservableObject {
             .sorted(by: { $0.key < $1.key})
             .map { (date, forecasts) in
                 let temps = forecasts.map { $0.main.temp }
-                let icons = forecasts.map { $0.weather.first?.icon ?? "01d" }
+                
+//                let sortedForecasts = forecasts.sorted(by: { $0.dt < $1.dt })
+//                let icons = sortedForecasts.map { $0.weather.first?.icon ?? "01d" }
+                
+                let sortedForecasts = forecasts.sorted(by: { $0.dt < $1.dt })
+                let icons = sortedForecasts.map { $0.weather.first?.icon ?? "01d" }
 
                 let icon = icons
                     .reduce(into: [:]) { $0[$1, default: 0] += 1 }
