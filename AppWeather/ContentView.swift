@@ -38,12 +38,13 @@ struct ContentView: View {
                         Text("\(Int(weather.main.temp))°C")
                     }
                 }
+                let offset = weatherService.forecastResponse?.city.timezone ?? 0
                 //MARK: Hourly forecast
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
-                        ForEach(weatherService.todayForecast, id: \.dt) { forecast in
+                        ForEach(weatherService.nextFiveHours, id: \.dt) { forecast in
                             VStack {
-                                Text(hourFormatter(forecast.dt))
+                                Text(hourFormatter(forecast.dt, timezoneOffset: offset))
                                 if let icon = forecast.weather.first?.icon {
                                     Image(systemName: iconName(for: icon))
                                         .resizable()
@@ -96,7 +97,8 @@ struct ContentView: View {
         case "03d", "03n": return "cloud.fill"
         case "04d", "04n": return "smoke.fill"
         case "09d", "09n": return "cloud.drizzle.fill"
-        case "10d", "10n": return "cloud.rain.fill"
+        case "10d": return "cloud.sun.rain.fill"
+        case "10n": return "cloud.moon.rain.fill"
         case "11d", "11n": return "cloud.bolt.fill"
         case "13d", "13n": return "snow.fill"
         case "50d", "50n": return "cloud.fog.fill"
@@ -104,9 +106,11 @@ struct ContentView: View {
         }
     }
     
-    func hourFormatter(_ timestamp: Int) -> String {
+    func hourFormatter(_ timestamp: Int, timezoneOffset: Int) -> String {
         let date = Date(timeIntervalSince1970: TimeInterval(timestamp))
         let formatter = DateFormatter()
+        let timezone = TimeZone(secondsFromGMT: timezoneOffset)
+        formatter.timeZone = timezone
         formatter.dateFormat = "HH:mm"
         return formatter.string(from: date)
     }

@@ -9,6 +9,7 @@ import Foundation
 
 struct WeatherResponse: Decodable {
     let name: String
+    let timezone: Int
     let main: Main
     let weather: [Weather]
 }

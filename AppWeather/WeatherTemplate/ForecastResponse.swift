@@ -9,6 +9,7 @@ import Foundation
 
 struct ForecastResponse: Decodable {
     let list: [Forecast]
+    let city: City
 }
 
 struct Forecast: Decodable {
@@ -17,3 +18,6 @@ struct Forecast: Decodable {
     let weather: [Weather]
 }
 
+struct City: Decodable {
+    let timezone: Int
+}

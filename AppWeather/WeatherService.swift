@@ -12,7 +12,7 @@ class WeatherService: ObservableObject {
     @Published var forecastResponse: ForecastResponse?
     @Published var weatherResponse: WeatherResponse?
     @Published var errorMessage: String?
-    let apiKey = "Your api key"
+    let apiKey = "3dc7e50a5c984dc2a09f61e768170d52"
     
     func fetchWeather(for city: String) {
         let urlStringWeather = "https://api.openweathermap.org/data/2.5/weather?q=\(city)&units=metric&appid=\(apiKey)"
@@ -129,5 +129,18 @@ class WeatherService: ObservableObject {
                     icon: icon
                 )
             }
+    }
+    
+    var nextFiveHours: [Forecast] {
+        guard let list = forecastResponse?.list else { return [] }
+        let now = Date()
+        
+        let nextHours = list.filter { forecast in
+            let forecastDate = Date(timeIntervalSince1970: TimeInterval(forecast.dt))
+            return forecastDate > now // Wybieramy prognozy po bieżącej godzinie
+        }
+        
+        let nextTen = Array(nextHours.prefix(10))
+        return nextTen
     }
 }
