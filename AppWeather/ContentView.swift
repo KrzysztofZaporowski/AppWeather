@@ -12,99 +12,36 @@ struct ContentView: View {
     @AppStorage("savedCity") private var city: String = ""
     @State private var cityInput: String = ""
     @AppStorage("isDarkMode") private var isDarkMode: Bool = false
+    @AppStorage("isAuto") private var isAuto: Bool = true
     @Environment(\.colorScheme) var colorScheme
+    
+    var chooseTheme: Bool {
+        isAuto ? (colorScheme == .dark) : isDarkMode
+    }
     
     var body: some View {
         ZStack {
-            LinearGradient(colors: isDarkMode ? [.blue, .cyan] : [.black, .gray], startPoint: .topTrailing, endPoint: .bottomTrailing)
+            LinearGradient(colors: chooseTheme ? [.blue, .cyan] : [.black, .gray], startPoint: .topTrailing, endPoint: .bottomTrailing)
                 .ignoresSafeArea(.all)
             VStack (alignment: .center, spacing: 20){
-                Text("Pogoda")
-                    .font(.title)
-                    .bold()
-                Spacer()
-                TextField("Wprowadź nazwę miasta", text: $cityInput, onCommit: {
-                    city = cityInput
-                    weatherService.fetchWeather(for: city)})
-                    .padding()
-                    .foregroundColor(Color.black)
-                    .background(Color.white.opacity(0.65))
-                    .cornerRadius(8)
-                    .padding(.horizontal)
-                if let error = weatherService.errorMessage {
-                    Text("Błąd: \(error)")
-                }
+                cityInputSection
                 //MARK: Current weather
                 if let currentWeather = weatherService.weatherResponse {
-                    VStack(alignment: .center, spacing: 10){
-                        Text(currentWeather.name)
-                            .font(.title2)
-                            .bold()
-                        Text("\(Int(currentWeather.main.temp))°C")
-                            .font(.largeTitle)
-                            .bold()
-                        if let icon = currentWeather.weather.first?.icon {
-                            Image(systemName: iconName(for: icon))
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 80, height: 80)
-                                .symbolRenderingMode(.multicolor)
-                        }
-                        Text(currentWeather.weather.first?.description ?? "Brak opisu pogody")
-                            .textCase(.uppercase)
-                    }
+                    currentWeatherSection(currentWeather)
                 }
                 //MARK: Hourly weather
-                let offset = weatherService.forecastResponse?.city.timezone ?? 0
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
-                        ForEach(weatherService.nextFiveHours, id: \.dt) { forecast in
-                            VStack {
-                                Text(hourFormatter(forecast.dt, timezoneOffset: offset))
-                                if let icon = forecast.weather.first?.icon {
-                                    Image(systemName: iconName(for: icon))
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 30, height: 30)
-                                        .symbolRenderingMode(.multicolor)
-                                }
-                                Text("\(Int(forecast.main.temp))°C")
-                            }
-                            .frame(width: 60, height: 120)
-                            .padding(.horizontal)
-                            .background(Color.white.opacity(0.2))
-                            .cornerRadius(8)
-                        }
-                    }
-                    .padding(.horizontal)
-                }
+                hourlyWeatherSection
                 //MARK: Weather for next 5 days
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
-                        ForEach(weatherService.dailyForecasts.dropFirst().prefix(4), id: \.date) { day in
-                            VStack {
-                                Text(shortPolishDayName(from: day.date))
-                                Image(systemName: iconName(for: day.icon))
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: 30, height: 30)
-                                    .symbolRenderingMode(.multicolor)
-                                Text("↑ \(Int(day.maxTemp))°C")
-                                Text("↓ \(Int(day.minTemp))°C")
-                                    .foregroundColor(.secondary)
-                            }
-                            .frame(width: 60, height: 120)
-                            .padding(.horizontal)
-                            .background(Color.white.opacity(0.2))
-                            .cornerRadius(8)
-                        }
-                        
-                    }
-                    .padding(.horizontal)
+                dailyWeatherSection
+                Toggle(isOn: $isAuto) {
+                    Text("Motyw systemowy")
                 }
+                .toggleStyle(SwitchToggleStyle(tint: .gray))
+                .padding(.horizontal)
                 Toggle(isOn: $isDarkMode) {
                     Text("Tryb ciemny")
                 }
+                .disabled(isAuto)
                 .toggleStyle(SwitchToggleStyle(tint: .gray))
                 .padding(.horizontal)
                 .padding(.bottom)
@@ -156,6 +93,94 @@ struct ContentView: View {
         formatter.locale = Locale(identifier: "pl_PL")
         formatter.dateFormat = "EEE"
         return formatter.string(from: date).capitalized
+    }
+    var cityInputSection: some View {
+        VStack {
+            Text("Pogoda")
+                .font(.title)
+                .bold()
+            Spacer()
+            TextField("Wprowadź nazwę miasta", text: $cityInput, onCommit: {
+                city = cityInput
+                weatherService.fetchWeather(for: city)})
+                .padding()
+                .foregroundColor(Color.black)
+                .background(Color.white.opacity(0.65))
+                .cornerRadius(8)
+                .padding(.horizontal)
+            if let error = weatherService.errorMessage {
+                Text("Błąd: \(error)")
+            }
+        }
+    }
+    func currentWeatherSection(_ currentWeather: WeatherResponse) -> some View{
+        VStack(alignment: .center, spacing: 10){
+            Text(currentWeather.name)
+                .font(.title2)
+                .bold()
+            Text("\(Int(currentWeather.main.temp))°C")
+                .font(.largeTitle)
+                .bold()
+            if let icon = currentWeather.weather.first?.icon {
+                Image(systemName: iconName(for: icon))
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 80, height: 80)
+                    .symbolRenderingMode(.multicolor)
+            }
+            Text(currentWeather.weather.first?.description ?? "Brak opisu pogody")
+                .textCase(.uppercase)
+        }
+    }
+    var hourlyWeatherSection: some View {
+        let offset = weatherService.forecastResponse?.city.timezone ?? 0
+        return ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(weatherService.nextFiveHours, id: \.dt) { forecast in
+                    VStack {
+                        Text(hourFormatter(forecast.dt, timezoneOffset: offset))
+                        if let icon = forecast.weather.first?.icon {
+                            Image(systemName: iconName(for: icon))
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 30, height: 30)
+                                .symbolRenderingMode(.multicolor)
+                        }
+                        Text("\(Int(forecast.main.temp))°C")
+                    }
+                    .frame(width: 60, height: 120)
+                    .padding(.horizontal)
+                    .background(Color.white.opacity(0.2))
+                    .cornerRadius(8)
+                }
+            }
+            .padding(.horizontal)
+        }
+    }
+    var dailyWeatherSection: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(weatherService.dailyForecasts.dropFirst().prefix(4), id: \.date) { day in
+                    VStack {
+                        Text(shortPolishDayName(from: day.date))
+                        Image(systemName: iconName(for: day.icon))
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 30, height: 30)
+                            .symbolRenderingMode(.multicolor)
+                        Text("↑ \(Int(day.maxTemp))°C")
+                        Text("↓ \(Int(day.minTemp))°C")
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(width: 60, height: 120)
+                    .padding(.horizontal)
+                    .background(Color.white.opacity(0.2))
+                    .cornerRadius(8)
+                }
+                
+            }
+            .padding(.horizontal)
+        }
     }
 }
 
